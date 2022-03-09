@@ -17,6 +17,10 @@ readxl::excel_sheets(filename)
 raw_data <- readxl::read_xlsx(filename)
 
 
+## Exclude redundant or unused column
+#   `Obs LOS`, 
+
+
 ## Filter for pt populations
 # Pt population: "home or self-care" under the column "D/C disposition"
 #   and: "med LB 45a, 45b, 45c, 49a, 49b, 49c, 54a, 55a, 55b, attending only, NP" under the column "primary team"
@@ -27,19 +31,9 @@ filtered_data <- raw_data %>% filter(`D/C Disposition` %in% c("Home - under care
                                      `Hospital Discharge Date/Time` <= as.POSIXct("2022-02-01 10:50:00", tz = "UTC"))
 
 
-# Similar columns from sheet1 and sheet2
-# `Drg Apr Desc.sheet1`, `Drg Federal Desc.sheet1`, `Insurance Product.sheet1`, `Neighborhood.sheet1`, `CMI Fed`, `Cmi Federal`, `Race IP Dis`, `Enc - Race Desc`, `Patient Race`, `Zip Code`, `Patient Zip (without extension)`, `Patient Zip`
-# only the two Neighborhood columns are combined since they are mostly equivalent
-filtered_data <- filtered_data %>% 
-  mutate(Neighborhood = if_else(Neighborhood.sheet1 != Neighborhood.sheet2, "BKN-Sunset Park/Boro Park", Neighborhood.sheet1)) %>% 
-  select(-c(Neighborhood.sheet1, Neighborhood.sheet2))
-
-
-## Fix NA values
-# Fix Race NA variable "0"
-filtered_data$`Enc - Race Desc`[filtered_data$`Enc - Race Desc` == 0] <- NA
-# Referral Status, NA to "Not Referred"
+## Fix Referral Status Values, NA to "Not Referred"
 filtered_data$`Referral Status`[is.na(filtered_data$`Referral Status`)] <- "Not Referred"
+filtered_data$`Referral Status`[filtered_data$`Referral Status` == "Completed"] <- "Completed, Referred"
 filtered_data$`Referral Status`[filtered_data$`Referral Status`== "Referred, Not Completed"] <- "Not Completed, Referred"
 
 
@@ -53,14 +47,13 @@ filtered_data$`Readmit w/in 20` <- if_else(filtered_data$`Readmit w/in 20`=="Y",
 filtered_data$`Readmit w/in 20`[is.na(filtered_data$`Readmit w/in 20`)] <- FALSE
 filtered_data$`Readmit w/in 30` <- if_else(filtered_data$`Readmit w/in 30`=="Y", T, F)
 filtered_data$`Readmit w/in 30`[is.na(filtered_data$`Readmit w/in 30`)] <- FALSE
-filtered_data$COMORBIDITY_FLAG <- if_else(filtered_data$COMORBIDITY_FLAG=="Y", T, F)
-filtered_data$COMORBIDITY_FLAG[is.na(filtered_data$COMORBIDITY_FLAG)] <- FALSE
 # Recode "Yes","No" to TRUE,FALSE
-bool_vars <- c("Discharge Summary Reviewed", "Medications Confirmed Visually", "Specialty Appointments Scheduled on the Day of Hospital Discharge", "Discrepancy Between Discharge Medication List and Today's Visit", "Patient in Possession of all Prescribed Medications", "Possession of Prescribed Meds", "PCP Was Routed This Note", "Discharging Resident Was Routed This Note", "Patient Connected to any Community Resources")
+bool_vars <- c("Discharge Summary Reviewed", "Medications Confirmed Visually", "Specialty Appointments Scheduled on the Day of Hospital Discharge", "Discrepancy Between Discharge Medication List and Today's Visit", "Patient in Possession of all Prescribed Medications", "Possession of Prescribed Meds", "Patient Have an Onsite Caregiver", "Onsite Caregiver Participating in Virtual Visit", "PCP Was Routed This Note", "Discharging Resident Was Routed This Note", "Patient Connected to any Community Resources")
 bool_cols <- map_dfc(.x = bool_vars, .f = function(x) recode(filtered_data[[x]], Yes = T, No = F, .default = NA))
 colnames(bool_cols) <- bool_vars
 walk(.x = bool_vars, .f = function(x) filtered_data[x] <<- bool_cols[x] )
 # Convert numeric to logical
+filtered_data$`No Show` <- as.logical(filtered_data$`30 Day Readmit`)
 filtered_data$`No Show` <- as.logical(filtered_data$`No Show`)
 filtered_data$Referred <- as.logical(filtered_data$Referred)
 filtered_data$`No PCP` <- as.logical(filtered_data$`No PCP`)
