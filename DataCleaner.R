@@ -37,6 +37,25 @@ filtered_data$`Referral Status`[filtered_data$`Referral Status` == "Completed"] 
 filtered_data$`Referral Status`[filtered_data$`Referral Status`== "Referred, Not Completed"] <- "Not Completed, Referred"
 
 
+## Recode `Patient Race`
+filtered_data$`Patient Race Recode` <- filtered_data$`Patient Race`
+filtered_data$`Patient Race Recode`[filtered_data$`Patient Race` %in% c("Asian", "Asian - unspecified", "Asian Indian", "Bangladeshi", "Chinese", "Japanese", "Korean", "Pakistani", "Thai", "Vietnamese")] <- "Asian"
+filtered_data$`Patient Race Recode`[filtered_data$`Patient Race` %in% c("Other Pacific Islander", "Filipino", "Guamanian or Chamorro")] <- "Pacific Islander"
+filtered_data$`Patient Race Recode`[filtered_data$`Patient Race` %in% c("Other Race", "Native American (American Indian/Eskimo/Aleutian)")] <- "Other"
+filtered_data$`Patient Race Recode`[filtered_data$`Patient Race` == "0"] <- "Unknown"
+filtered_data$`Patient Race Recode`[filtered_data$`Patient Race` == "Patient Refused"] <- "Refused"
+filtered_data$`Patient Race Recode`[filtered_data$`Patient Race` == "African American (Black)"] <- "Black"
+
+
+## Recode `Insurance Product`
+filtered_data$`Insurance Product` <- recode(filtered_data$`Insurance Product`,
+                                             `Managed Care` = "Medicaid", 
+                                             `Medicaid Managed Care` = "Medicaid", 
+                                             `Medicaid` = "Medicaid",
+                                             `Medicare Managed Care` = "Medicare",
+                                             `Medicare` = "Medicare",
+                                             .default = "Other")
+
 ## Fix Boolean Variables
 # Fix Variable Types, convert ("Y", NA, NA) to (TRUE, FALSE, FALSE)
 filtered_data$`Scheduled TCM w/in 10 days` <- if_else(filtered_data$`Scheduled TCM w/in 10 days`=="Y", T, F)

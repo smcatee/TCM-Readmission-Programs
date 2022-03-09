@@ -23,9 +23,9 @@ colnames(readmiss_data)
 ## Treatment: `Referral Status`
 readmiss_data$`Referral Status` %>% table(useNA = "always")
 
+
 ## include PCP, telephone visits
-readmiss_data %>%  mutate(`No PCP Listed` = is.na(PCP)) %>% 
-  select( `Referral Status`, `No PCP Listed`) %>% 
+readmiss_data %>%  select( `Referral Status`, `No PCP`) %>% 
   tbl_summary(by = `Referral Status`,
               statistic = list(all_continuous() ~ "{mean} ({sd})",
                                all_categorical() ~ "{n} ({p}%)"),
@@ -36,11 +36,10 @@ readmiss_data %>%  mutate(`No PCP Listed` = is.na(PCP)) %>%
   modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Referral Status**") %>%
   add_p()
 
-
+readmiss_data$`Patient Race` %>% table()
 ## Demographic Vars
-# "Enc - Age", "Enc - Gender", "Enc - Race Desc", "Ethnicity Desc", "Insurance", "Zip Code", "Neighborhood", `Race IP Dis`
-readmiss_data %>% mutate()
-select( `Referral Status`, Age = "Enc - Age", Gender = "Enc - Gender", Race = "Enc - Race Desc") %>% 
+# Completed vs not completed vs not referred
+readmiss_data %>% select( `Referral Status`, Age = "Patient Age",  Race = "Patient Race Recode") %>% 
   tbl_summary(by = `Referral Status`,
               statistic = list(all_continuous() ~ "{mean} ({sd})",
                                all_categorical() ~ "{n} ({p}%)"),
@@ -51,8 +50,9 @@ select( `Referral Status`, Age = "Enc - Age", Gender = "Enc - Gender", Race = "E
   modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Referral Status**") %>%
   add_p()
 
+# Completed vs not completed
 readmiss_data %>% filter(`Referral Status` != "Not Referred") %>% 
-  select( `Referral Status`, Age = "Enc - Age", Gender = "Enc - Gender", Race = "Enc - Race Desc") %>% 
+  select( `Referral Status`, Age = "Patient Age", Race = "Patient Race Recode") %>% 
   tbl_summary(by = `Referral Status`,
               statistic = list(all_continuous() ~ "{mean} ({sd})",
                                all_categorical() ~ "{n} ({p}%)"),
@@ -67,8 +67,6 @@ readmiss_data %>% filter(`Referral Status` != "Not Referred") %>%
 
 
 ## Visit Vars
-# LOS, `Type of Visit`, `Primary Team`
-
 # Comparing LOS to Days until readmission for 
 plot_los_read <- readmiss_data %>% 
   ggplot(aes(x=`LOS`, y=`Readmit Days after Discharge`, colour = `Referral Status`)) + 
@@ -79,16 +77,10 @@ ggMarginal(plot_los_read, groupColour = TRUE, groupFill = TRUE)
 
 
 # Med Vars
-# `Admission Dx`, `Readmission Dx`, 
-# `Discrepancy Between Discharge Medication List and Today's Visit`, 
-# `Patient in Possession of all Prescribed Medications`, `Patient Have an Onsite Caregiver`, 
-# `Patient Connected to any Community Resources`, `CMI Fed`, `Cmi Federal`, "COMORBIDITY_FLAG", 
-# "Drg Apr Desc.sheet1", "Drg Federal Desc.sheet1"
-# 
 readmiss_data %>% 
   select(`Referral Status`, "Med Discrepancy" = `Discrepancy Between Discharge Medication List and Today's Visit`,
          "Patient Has All Meds" = `Patient in Possession of all Prescribed Medications`,
-         `CMI Fed`) %>% 
+         `Cmi Federal`) %>% 
   tbl_summary(by = `Referral Status`,
               statistic = list(all_continuous() ~ "{mean} ({sd})",
                                all_categorical() ~ "{n} ({p}%)"),
@@ -99,11 +91,20 @@ readmiss_data %>%
   modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Referral Status**") %>%
   add_p()
 
-
-
+# Insurance Group
+readmiss_data %>% 
+  select(`Referral Status`, `Insurance Product`) %>% 
+  tbl_summary(by = `Referral Status`,
+              statistic = list(all_continuous() ~ "{mean} ({sd})",
+                               all_categorical() ~ "{n} ({p}%)"),
+              digits = all_continuous() ~ 2,
+              missing_text = "Missing"
+  ) %>% 
+  modify_header(label ~ "**Variable**") %>%
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Referral Status**") %>%
+  add_p()
 
 # Scheduling/Readmit Vars
-# "Scheduled TCM w/in 10 days", "Readmit w/in 10", "Readmit w/in 20", "Readmit w/in 30", "Readmit Days after Discharge"
 readmiss_data %>% 
   select(`Referral Status`, "Readmit Days after Discharge", "Readmit w/in 10", 
          "Readmit w/in 20", "Readmit w/in 30")  %>% 
@@ -150,3 +151,16 @@ readmiss_data %>% ggplot(aes(fill = `Referral Status`, x = `Readmit w/in 30`)) +
   geom_histogram(stat="count") + scale_fill_manual(values=c("#a8a8a8", "#828282", "#5d5d5d")) +
   labs(title = "Readmitted within 30 days, grouped by Referral Status")
 
+
+
+# Map Plot Zip
+# vs `Referral Status`, `Type of Visit`, `TCM Location`, 
+# clinic locations:
+library(zipcode)
+library(maps)
+library(viridis)
+library(ggthemes)
+
+map_data()
+
+maps::state()
