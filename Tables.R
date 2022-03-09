@@ -104,6 +104,22 @@ readmiss_data %>%
   modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Referral Status**") %>%
   add_p()
 
+# Virtual or In Person
+readmiss_data %>% 
+  select(`Referral Status`, `Type of Visit`) %>% 
+  filter(`Referral Status` != "Not Referred") %>% 
+  tbl_summary(by = `Referral Status`,
+              statistic = list(all_continuous() ~ "{mean} ({sd})",
+                               all_categorical() ~ "{n} ({p}%)"),
+              digits = all_continuous() ~ 2,
+              missing_text = "Missing"
+  ) %>% 
+  modify_header(label ~ "**Variable**") %>%
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Referral Status**") %>%
+  add_p()
+
+
+
 # Scheduling/Readmit Vars
 readmiss_data %>% 
   select(`Referral Status`, "Readmit Days after Discharge", "Readmit w/in 10", 
@@ -132,13 +148,13 @@ readmiss_data %>% filter(`Referral Status` != "Not Referred") %>%
   modify_spanning_header(c("stat_1", "stat_2") ~ "**Referral Status**") %>%
   add_p()
 
-# Plot scatter readmit days after dc, with percent readmissions
-readmit_percent <- readmiss_data %>% group_by(`Referral Status`) %>% summarise(readmitted = mean(!is.na(`Readmit Days after Discharge`)))
+# Plot density of readmit days after dc, with percent readmissions
+readmiss_data %>% group_by(`Referral Status`) %>% 
+  mutate(`Plot Labels Referral Status` = str_c( `Referral Status`, "\n(", signif(mean(!is.na(`Readmit Days after Discharge`))*100, 2), "% readmitted in 30d)")) %>% 
+  ggplot( aes(fill = `Plot Labels Referral Status`, x = `Readmit Days after Discharge`)) +
+  geom_density(alpha = 0.5, trim = T) 
 
-ggplot(data = readmiss_data, aes(x = `Referral Status`, y = `Readmit Days after Discharge`)) +
-  geom_boxplot() +
-  geom_text(data = readmit_percent, aes(x = `Referral Status`, label = paste0(signif(readmitted, 4)*100, "%"), y = 32)) +
-  geom_text(aes(x = 0.62, y = 32, label = "(Readmit %)"))
+
 
 # `Readmit Days after Discharge` Histogram with NA
 readmiss_data %>% group_by(`Readmit Days after Discharge`) %>% count(`Readmit Days after Discharge`) %>% 
@@ -156,11 +172,28 @@ readmiss_data %>% ggplot(aes(fill = `Referral Status`, x = `Readmit w/in 30`)) +
 # Map Plot Zip
 # vs `Referral Status`, `Type of Visit`, `TCM Location`, 
 # clinic locations:
-library(zipcode)
-library(maps)
-library(viridis)
+library(rgeos)
+library(maptools)
+library(geojsonio)
 library(ggthemes)
 
-map_data()
 
-maps::state()
+URL <- "https://data-beta-nyc-files.s3.amazonaws.com/resources/6df127b1-6d04-4bb7-b983-07402a2c3f90/f4129d9aa6dd4281bc98d0f701629b76nyczipcodetabulationareas.geojson?Signature=Q9nL0edVD8P9Hh%2BCZtVGa1ssPQc%3D&Expires=1646868303&AWSAccessKeyId=AKIAWM5UKMRH2KITC3QA"
+fil <- "nyc_zip.geojson"
+if (!file.exists(fil)) download.file(URL, fil)
+nyc_zips <- geojson_read(fil, what="sp")
+nyc_zips_map <- broom::tidy(nyc_zips, region = "postalCode")
+
+
+gg <- ggplot()
+gg <- gg + geom_map(data = nyc_zips_map, map = nyc_zips_map,
+                    aes(x=long, y=lat, map_id=id),
+                    color="#2b2b2b", size=0.15, fill=NA)
+gg <- gg + geom_map(data = filter(readmiss_data, `Referral Status`!="Not Referred"), map = nyc_zips_map,
+                    aes(fill = `Referral Status`, map_id = `Patient Zip (without extension)`),
+                    color="#2b2b2b", size=0.15)
+gg <- gg + scale_fill_viridis(name="Referral Status")
+gg <- gg + coord_map()
+gg <- gg + ggthemes::theme_map()
+gg <- gg + theme(legend.position=c(0.1,0.5))
+gg
