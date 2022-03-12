@@ -13,17 +13,31 @@ readmiss_data <- read_csv(filename)
 # Set Theme
 theme_gtsummary_journal(journal = "jama")
 
+## Insurance with status
+table(readmiss_data$`Referral Status`, readmiss_data$`Insurance Product`)
+chisq.test(readmiss_data$`Referral Status`, readmiss_data$`Insurance Product`, correct=FALSE)
+
 
 ## Multinomial to find difference of `Referral Status` fit on covars
 # `Not Referred` as baseline
+## readmit 10,20, 30
 library(nnet)
+
+readmiss_data$`Patient Race`
 readmiss_data$`Referral Status` <- relevel(as.factor(readmiss_data$`Referral Status`), ref = "Not Referred")
 
-multinom_referral <- nnet::multinom(`Referral Status` ~ `LOS` + `Enc - Age` + `Enc - Gender` + `Ethnicity Desc`, data = readmiss_data)
+multinom_referral <- nnet::multinom(`Readmit w/in 10` ~`Referral Status` + LOS + `Patient Age` +`Insurance Product`, data = readmiss_data)
 summary(multinom_referral)
 
-logit_readmit10 <- glm(`Readmit w/in 10` ~ `Referral Status` + `LOS` + `Enc - Age` + `Enc - Gender` + `CMI Fed`, data = readmiss_data, family = binomial)
+logit_readmit10 <- glm(`Readmit w/in 10` ~ `Referral Status` + LOS + `Patient Age` + `Insurance Product` + `Patient Race`, data = readmiss_data, family = binomial)
 summary(logit_readmit10)
+
+logit_readmit20 <-glm(`Readmit w/in 20` ~ `Referral Status` + LOS + `Patient Age` + `Insurance Product` + `Patient Race`, data = readmiss_data, family = binomial)
+summary(logit_readmit20)
+
+logit_readmit30 <-glm(`Readmit w/in 30` ~ `Referral Status` + LOS + `Patient Age` + `Insurance Product` + `Patient Race`, data = readmiss_data, family = binomial)
+summary(logit_readmit30)
+
 
 linmod_readmitdays <- lm(`Readmit Days after Discharge` ~ `Referral Status` + `LOS` + `Enc - Age` + `Enc - Gender` + `CMI Fed`, data = readmiss_data)
 summary(linmod_readmitdays)
