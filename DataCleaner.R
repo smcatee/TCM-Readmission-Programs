@@ -22,9 +22,9 @@ raw_data <- readxl::read_xlsx(filename)
 
 
 ## Filter for pt populations
-# Pt population: "home or self-care" under the column "D/C disposition"
-#   and: "med LB 45a, 45b, 45c, 49a, 49b, 49c, 54a, 55a, 55b, attending only, NP" under the column "primary team"
-#   and: up to Jan 20222
+# Pt population (D/C Disposition): "Home - under care of Home Health Services", "Home or Self-Care"
+# Primary Team: "med LB 45a, 45b, 45c, 49a, 49b, 49c, 54a, 55a, 55b, attending only, NP"
+# Time: up to and including Jan 2022
 team_list <- c("MED LB 45A", "MED LB 45B", "MED LB 45C", "MED LB 49A", "MED LB 49B", "MED LB 49C", "MED LB 54A", "MED LB 55A", "MED LB 55B", "MED LB ATTENDING ONLY", "MED LB NP")
 filtered_data <- raw_data %>% filter(`D/C Disposition` %in% c("Home - under care of Home Health Services", "Home or Self-Care"), 
                                      `Primary Team` %in% team_list,
@@ -37,6 +37,13 @@ filtered_data$`Referral Status`[filtered_data$`Referral Status` == "Completed"] 
 filtered_data$`Referral Status`[filtered_data$`Referral Status`== "Referred, Not Completed"] <- "Not Completed, Referred"
 
 
+## Recode `Readmit w/in **`
+filtered_data$`Readmit w/in X` <- rep.int(NA,nrow(readmiss_data))
+filtered_data$`Readmit w/in X`[readmiss_data$`Readmit w/in 30`] <- "Readmit w/in 30"
+filtered_data$`Readmit w/in X`[readmiss_data$`Readmit w/in 20`] <- "Readmit w/in 20"
+filtered_data$`Readmit w/in X`[readmiss_data$`Readmit w/in 10`] <- "Readmit w/in 10"
+
+
 ## Recode `Patient Race`
 filtered_data$`Patient Race Recode` <- filtered_data$`Patient Race`
 filtered_data$`Patient Race Recode`[filtered_data$`Patient Race` %in% c("Asian", "Asian - unspecified", "Asian Indian", "Bangladeshi", "Chinese", "Japanese", "Korean", "Pakistani", "Thai", "Vietnamese")] <- "Asian"
@@ -46,6 +53,11 @@ filtered_data$`Patient Race Recode`[filtered_data$`Patient Race` == "0"] <- "Unk
 filtered_data$`Patient Race Recode`[filtered_data$`Patient Race` == "Patient Refused"] <- "Refused"
 filtered_data$`Patient Race Recode`[filtered_data$`Patient Race` == "African American (Black)"] <- "Black"
 
+## ReRecode `Patient Race`
+filtered_data$`Patient Race ReRecode` <- ifelse(readmiss_data$`Patient Race Recode` %in% c("Pacific Islander", "Other", "Unknown", "Refused"), "Other/Unkn/Ref", readmiss_data$`Patient Race Recode`)
+
+## Recode `Discharge Challenges`
+filtered_data$`Discharge Challenges T/F` <- ifelse(is.na(filtered_data$`Discharge Challenges`), FALSE, TRUE)
 
 ## Recode `Insurance Product`
 filtered_data$`Insurance Product` <- recode(filtered_data$`Insurance Product`,
@@ -76,14 +88,6 @@ filtered_data$`No Show` <- as.logical(filtered_data$`30 Day Readmit`)
 filtered_data$`No Show` <- as.logical(filtered_data$`No Show`)
 filtered_data$Referred <- as.logical(filtered_data$Referred)
 filtered_data$`No PCP` <- as.logical(filtered_data$`No PCP`)
-
-
-
-#### IN DEVELOPMENT
-# classify dx and readmit dx codes in `Admission Dx` `Readmission Dx`
-
-
-#### IN DEVELOPMENT
 
 
 

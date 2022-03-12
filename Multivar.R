@@ -29,7 +29,7 @@ linmod_readmitdays <- lm(`Readmit Days after Discharge` ~ `Referral Status` + `L
 summary(linmod_readmitdays)
 
 
-# 3d scatter plot
-library(plotly)
 
-plot_ly(readmiss_data, x = ~`Enc - Age`, y = ~`Readmit Days after Discharge`, z = ~`Referral Status`, color = ~`Referral Status`, colors = c("#a8a8a8", "#828282", "#5d5d5d"))
+# `Patient Age`, gender, LOS, `Type of Visit`, `No PCP`, `Insurance Product`
+glm(`Readmit w/in 10` ~ `Referral Status` + `Patient Age` + LOS + `Type of Visit` + `No PCP` + `Insurance Product`, data = readmiss_data, family = binomial) %>% summary()
+lm(`Readmit w/in 10` ~ `Referral Status` + `Patient Age` + LOS + `Type of Visit` + `No PCP` + `Insurance Product`, data = readmiss_data) %>% summary()
